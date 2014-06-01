@@ -4,6 +4,8 @@ from mutagen.easyid3 import EasyID3
 import os.path
 import requests
 import json
+import boto
+from boto.s3.key import Key
 
 #print "Welcome to Dirigible37s hype machine scraper! Please enter url below:"
 #baseUrl = "http://hypem.com/" + raw_input("http://hypem.com/")
@@ -13,6 +15,10 @@ import json
 #numPages = sys.argv[2]
 baseUrl = "http://hypem.com/dirigible"
 numPages = 1;
+
+conn = boto.connect_s3()
+bucket = conn.get_bucket('dirigible-media-player')
+k = Key(bucket)
 
 #cookies expire, need to generate cookie
 #use username and pass to authenticate, then get the cookie from that
@@ -81,6 +87,7 @@ for i in range (1, int(numPages)+1):
 	temp_html.close()
 	src.close()
 
+#Download Songs
 for j in range(0, len(keys) - 1):
 	currentSong = requests.post("http://hypem.com/serve/source/" + ids[j] + "/" + keys[j], headers = headers)
 	songUrl = currentSong.content[currentSong.content.find("http:") : currentSong.content.find("\"}")]
@@ -114,4 +121,9 @@ for j in range(0, len(keys) - 1):
 	changed = EasyID3("songs/" + titles[j] + ".mp3")
 	print changed
 
+	k.key = titles[j]
+	print "Uploading song to bucket"
+	k.set_contents_from_filename("songs/" + titles[j] + ".mp3")
+	
+	os.remove("songs/" + titles[j] + ".mp3")
 print "All done"
